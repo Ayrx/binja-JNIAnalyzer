@@ -7,7 +7,6 @@ from collections import namedtuple
 import re
 
 TYPE_REGEX = re.compile(r"\((|.+?)\)(.+?)")
-FUNCTION_TYPE_REGEX = re.compile(r"[^ ]+ \(|.*\) ([^ ]+)")
 
 
 Method = namedtuple(
