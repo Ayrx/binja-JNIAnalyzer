@@ -197,7 +197,7 @@ def build_binja_type_signature(method_name, method, attr):
     return t
 
 
-def import_typelib(bv):
+def init_binja(bv):
     log_info("Importing JNI type library")
     typelib = TypeLibrary.from_name(bv.arch, "JNI")
     if typelib == None:
@@ -206,9 +206,11 @@ def import_typelib(bv):
 
     bv.add_type_library(typelib)
 
+    return bv.create_tag_type("JNIAnalyzer", u"🥃")
+
 
 def import_apk(bv):
-    import_typelib(bv)
+    jnianalyzer_tagtype = init_binja(bv)
 
     fname = get_open_filename_input("Select APK")
     with open(fname, "rb") as f:
@@ -224,10 +226,12 @@ def import_apk(bv):
         for f in bv.functions:
             if f.name == "JNI_OnLoad":
                 f.function_type = "jint JNI_OnLoad(JavaVM *vm, void *reserved);"
+                f.create_user_function_tag(jnianalyzer_tagtype, f.name)
                 continue
 
             if f.name == "JNI_OnUnload":
                 f.function_type = "void JNI_OnUnload(JavaVM *vm, void *reserved);"
+                f.create_user_function_tag(jnianalyzer_tagtype, f.name)
                 continue
 
             try:
@@ -235,12 +239,14 @@ def import_apk(bv):
                 log_info("Setting type for: {}".format(f.name))
                 attr = str(f.function_type).split(")")[1]
                 f.function_type = build_binja_type_signature(f.name, method, attr)
+                f.create_user_function_tag( jnianalyzer_tagtype, f.name)
+
             except KeyError:
                 continue
 
 
 def import_trace_registernatives(bv):
-    import_typelib(bv)
+    jnianalyzer_tagtype = init_binja(bv)
 
     fname = get_open_filename_input("Select JSON")
     with open(fname, "rb") as f:
@@ -251,16 +257,22 @@ def import_trace_registernatives(bv):
             methods_ptr = i["methods_ptr"]
             methods_count = i["nMethods"]
 
+            methods_ptr_int = int(methods_ptr, 16)
+            class_name_array = "{}_METHODS_ARRAY".format(class_name)
+
             log_info("Setting JNINativeMethod type at {}".format(methods_ptr))
 
             # Set JNINativeMethod type
             t = bv.get_type_by_name("JNINativeMethod")
             t = Type.array(t, methods_count)
-            bv.define_user_data_var(int(methods_ptr, 16), t)
+            bv.define_user_data_var(methods_ptr_int, t)
 
             # Set symbol for array
-            sym = Symbol("DataSymbol", int(methods_ptr, 16), "{}_METHODS_ARRAY".format(class_name))
+            sym = Symbol("DataSymbol", methods_ptr_int, class_name_array)
             bv.define_user_symbol(sym)
+
+            # Set tag
+            bv.create_user_data_tag(methods_ptr_int, jnianalyzer_tagtype, class_name_array)
 
 
 PluginCommand.register(
