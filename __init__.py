@@ -239,7 +239,7 @@ def import_apk(bv):
                 log_info("Setting type for: {}".format(f.name))
                 attr = str(f.function_type).split(")")[1]
                 f.function_type = build_binja_type_signature(f.name, method, attr)
-                f.create_user_function_tag( jnianalyzer_tagtype, f.name)
+                f.create_user_function_tag(jnianalyzer_tagtype, f.name)
 
             except KeyError:
                 continue
@@ -272,7 +272,9 @@ def import_trace_registernatives(bv):
             bv.define_user_symbol(sym)
 
             # Set tag
-            bv.create_user_data_tag(methods_ptr_int, jnianalyzer_tagtype, class_name_array)
+            bv.create_user_data_tag(
+                methods_ptr_int, jnianalyzer_tagtype, class_name_array
+            )
 
 
 PluginCommand.register(
