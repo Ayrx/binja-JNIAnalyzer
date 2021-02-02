@@ -19,11 +19,24 @@ the correct things if you are on Linux.
 
 ## Usage
 
+### Import APK
+
 Run the "JNIAnalyzer: Import APK" command and select the APK file associated
 with the native library being analyzed.
 
+### Import trace_registernatives
+
+Run the "JNIAnalyzer: Import trace_registernatives JSON" command and select
+the JSON output from [trace_registernatives][trace_registernatives].
+
+### Binary Ninja Tags
+
+JNI related functions or data structures detected by this extension will be
+tagged with "JNIAnalyzer" using Binary Ninja's Tag API which can be viewed
+using Binary Ninja's tag browser.
 
 [ghidra-jnianalyzer]: https://github.com/Ayrx/JNIAnalyzer
 [androguard]: https://github.com/androguard/androguard
 [binja-typemanager]: https://github.com/Ayrx/binja-typemanager
 [binja-typelibs-collection]: https://github.com/Ayrx/binja-typelibs-collection
+[trace_registernatives]: https://github.com/Ayrx/trace_registernatives
