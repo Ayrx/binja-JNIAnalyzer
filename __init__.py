@@ -1,10 +1,12 @@
 from binaryninja.plugin import PluginCommand
 from binaryninja.interaction import get_open_filename_input
 from binaryninja.log import log_info, log_error
+from binaryninja.types import Type, Symbol
 from binaryninja.typelibrary import TypeLibrary
 from androguard.misc import AnalyzeAPK
 from collections import namedtuple
 import re
+import json
 
 TYPE_REGEX = re.compile(r"\((|.+?)\)(.+?)")
 
@@ -195,7 +197,7 @@ def build_binja_type_signature(method_name, method, attr):
     return t
 
 
-def import_apk(bv):
+def import_typelib(bv):
     log_info("Importing JNI type library")
     typelib = TypeLibrary.from_name(bv.arch, "JNI")
     if typelib == None:
@@ -203,6 +205,10 @@ def import_apk(bv):
         return
 
     bv.add_type_library(typelib)
+
+
+def import_apk(bv):
+    import_typelib(bv)
 
     fname = get_open_filename_input("Select APK")
     with open(fname, "rb") as f:
@@ -233,8 +239,38 @@ def import_apk(bv):
                 continue
 
 
+def import_trace_registernatives(bv):
+    import_typelib(bv)
+
+    fname = get_open_filename_input("Select JSON")
+    with open(fname, "rb") as f:
+        data = json.load(f)
+
+        for i in data:
+            class_name = i["name"]
+            methods_ptr = i["methods_ptr"]
+            methods_count = i["nMethods"]
+
+            log_info("Setting JNINativeMethod type at {}".format(methods_ptr))
+
+            # Set JNINativeMethod type
+            t = bv.get_type_by_name("JNINativeMethod")
+            t = Type.array(t, methods_count)
+            bv.define_user_data_var(int(methods_ptr, 16), t)
+
+            # Set symbol for array
+            sym = Symbol("DataSymbol", int(methods_ptr, 16), "{}_METHODS_ARRAY".format(class_name))
+            bv.define_user_symbol(sym)
+
+
 PluginCommand.register(
     "JNIAnalyzer: Import APK",
     "Analyze APK for native method signatures.",
     import_apk,
+)
+
+PluginCommand.register(
+    "JNIAnalyzer: Import trace_registernatives JSON",
+    "Import results from trace_registernatives output.",
+    import_trace_registernatives,
 )
