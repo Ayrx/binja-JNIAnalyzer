@@ -195,7 +195,7 @@ def build_binja_type_signature(method_name, method, attr):
     return t
 
 
-def analyze(bv):
+def import_apk(bv):
     log_info("Importing JNI type library")
     typelib = TypeLibrary.from_name(bv.arch, "JNI")
     if typelib == None:
@@ -236,5 +236,5 @@ def analyze(bv):
 PluginCommand.register(
     "JNIAnalyzer: Import APK",
     "Analyze APK for native method signatures.",
-    analyze,
+    import_apk,
 )
