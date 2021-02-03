@@ -234,7 +234,7 @@ def init_binja(bv):
 
     bv.add_type_library(typelib)
 
-    return bv.create_tag_type("JNIAnalyzer", u"🥃")
+    return bv.create_tag_type("JNIAnalyzer", "JNI")
 
 
 def import_apk(bv):
