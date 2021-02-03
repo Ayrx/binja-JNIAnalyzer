@@ -1,3 +1,4 @@
+from binaryninja.binaryview import StructuredDataView
 from binaryninja.plugin import PluginCommand
 from binaryninja.interaction import get_open_filename_input
 from binaryninja.log import log_info, log_error
@@ -8,7 +9,7 @@ from collections import namedtuple
 import re
 import json
 
-TYPE_REGEX = re.compile(r"\((|.+?)\)(.+?)")
+TYPE_REGEX = re.compile(r"\((|.+?)\)(.+)")
 
 
 Method = namedtuple(
@@ -175,6 +176,33 @@ def parse_type_signature(sig):
     return "void"
 
 
+def read_string(bv, addr):
+    """Read a string from the target binary
+
+    There are some instances where a valid string isn't detected by Binary
+    Ninja as a string and `get_string_at` does not return a value. In such
+    instances, we just manually read bytes till we hit the null terminator.
+
+    This function should only be used with pointers from the `JNINativeMethod`
+    struct.
+    """
+    ret = bv.get_string_at(addr)
+    if ret:
+        return str(ret)
+
+    ret = b""
+    cur = 0
+    while True:
+        b = bv.read(addr + cur, 1)
+        ret += b
+        cur += 1
+
+        if b == b"\00":
+            break
+
+    return ret.decode()
+
+
 def build_binja_type_signature(method_name, method, attr):
     t = ""
     t += parse_return_type(method)
@@ -264,8 +292,31 @@ def import_trace_registernatives(bv):
 
             # Set JNINativeMethod type
             t = bv.get_type_by_name("JNINativeMethod")
+            t_size = t.width
             t = Type.array(t, methods_count)
             bv.define_user_data_var(methods_ptr_int, t)
+
+            # Set function signature
+            for i in range(0, methods_count):
+                ptr = methods_ptr_int + (i * t_size)
+                data = StructuredDataView(bv, "JNINativeMethod", ptr)
+
+                method_name = str(bv.get_string_at(data.name.int))
+                fn_ptr = data.fnPtr.int
+                signature = read_string(bv, data.signature.int)
+
+                method = Method(
+                    class_name,
+                    method_name,
+                    signature,
+                    False,
+                )
+
+                f = bv.get_function_at(fn_ptr)
+                attr = str(f.function_type).split(")")[1]
+                log_info("Setting type for: {}".format(f.name))
+                f.function_type = build_binja_type_signature(f.name, method, attr)
+                f.create_user_function_tag(jnianalyzer_tagtype, f.name)
 
             # Set symbol for array
             sym = Symbol("DataSymbol", methods_ptr_int, class_name_array)
