@@ -176,33 +176,6 @@ def parse_type_signature(sig):
     return "void"
 
 
-def read_string(bv, addr):
-    """Read a string from the target binary
-
-    There are some instances where a valid string isn't detected by Binary
-    Ninja as a string and `get_string_at` does not return a value. In such
-    instances, we just manually read bytes till we hit the null terminator.
-
-    This function should only be used with pointers from the `JNINativeMethod`
-    struct.
-    """
-    ret = bv.get_string_at(addr)
-    if ret:
-        return str(ret)
-
-    ret = b""
-    cur = 0
-    while True:
-        b = bv.read(addr + cur, 1)
-        ret += b
-        cur += 1
-
-        if b == b"\00":
-            break
-
-    return ret.decode()
-
-
 def build_binja_type_signature(method_name, method, attr):
     t = ""
     t += parse_return_type(method)
@@ -301,9 +274,9 @@ def import_trace_registernatives(bv):
                 ptr = methods_ptr_int + (i * t_size)
                 data = StructuredDataView(bv, "JNINativeMethod", ptr)
 
-                method_name = str(bv.get_string_at(data.name.int))
+                method_name = str(bv.get_ascii_string_at(data.name.int, 1))
                 fn_ptr = data.fnPtr.int
-                signature = read_string(bv, data.signature.int)
+                signature = str(bv.get_ascii_string_at(data.signature.int, 1))
 
                 method = Method(
                     class_name,
