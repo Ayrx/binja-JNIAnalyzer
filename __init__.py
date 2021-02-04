@@ -210,6 +210,33 @@ def init_binja(bv):
     return bv.create_tag_type("JNIAnalyzer", "JNI")
 
 
+def apply_data_tag(bv, address, tagtype, data):
+    tags = bv.get_data_tags_at(address)
+    for tag in tags:
+        if tag.type.name == tagtype.name:
+            break
+    else:
+        bv.create_user_data_tag(
+            address, tagtype, data
+        )
+
+
+def apply_function_tag(func, tagtype, data):
+    tags = func.function_tags
+    for tag in tags:
+        if tag.type.name == tagtype.name:
+            break
+    else:
+        func.create_user_function_tag(tagtype, data)
+
+
+def apply_comment(func, method):
+    if "JNIAnalyzer" not in func.comment:
+        func.comment = "{}\nJNIAnalyzer:\nClass: {}\nMethod: {}".format(
+            func.comment, method.class_name, method.method_name
+        )
+
+
 def import_apk(bv):
     jnianalyzer_tagtype = init_binja(bv)
 
@@ -227,12 +254,12 @@ def import_apk(bv):
         for f in bv.functions:
             if f.name == "JNI_OnLoad":
                 f.function_type = "jint JNI_OnLoad(JavaVM *vm, void *reserved);"
-                f.create_user_function_tag(jnianalyzer_tagtype, f.name)
+                apply_function_tag(f, jnianalyzer_tagtype, f.name)
                 continue
 
             if f.name == "JNI_OnUnload":
                 f.function_type = "void JNI_OnUnload(JavaVM *vm, void *reserved);"
-                f.create_user_function_tag(jnianalyzer_tagtype, f.name)
+                apply_function_tag(f, jnianalyzer_tagtype, f.name)
                 continue
 
             try:
@@ -240,10 +267,8 @@ def import_apk(bv):
                 log_info("Setting type for: {}".format(f.name))
                 attr = str(f.function_type).split(")")[1]
                 f.function_type = build_binja_type_signature(f.name, method, attr)
-                f.create_user_function_tag(jnianalyzer_tagtype, f.name)
-                f.comment = "{}\nJNIAnalyzer:\nClass: {}\nMethod: {}".format(
-                    f.comment, method.class_name, method.method_name
-                )
+                apply_function_tag(f, jnianalyzer_tagtype, f.name)
+                apply_comment(f, method)
 
             except KeyError:
                 continue
@@ -292,19 +317,15 @@ def import_trace_registernatives(bv):
                 attr = str(f.function_type).split(")")[1]
                 log_info("Setting type for: {}".format(f.name))
                 f.function_type = build_binja_type_signature(f.name, method, attr)
-                f.create_user_function_tag(jnianalyzer_tagtype, f.name)
-                f.comment = "{}\nJNIAnalyzer:\nClass: {}\nMethod: {}".format(
-                    f.comment, method.class_name, method.method_name
-                )
+                apply_function_tag(f, jnianalyzer_tagtype, f.name)
+                apply_comment(f, method)
 
             # Set symbol for array
             sym = Symbol("DataSymbol", methods_ptr_int, class_name_array)
             bv.define_user_symbol(sym)
 
             # Set tag
-            bv.create_user_data_tag(
-                methods_ptr_int, jnianalyzer_tagtype, class_name_array
-            )
+            apply_data_tag(bv, methods_ptr_int, jnianalyzer_tagtype, class_name_array)
 
 
 PluginCommand.register(
