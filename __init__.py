@@ -241,6 +241,9 @@ def import_apk(bv):
                 attr = str(f.function_type).split(")")[1]
                 f.function_type = build_binja_type_signature(f.name, method, attr)
                 f.create_user_function_tag(jnianalyzer_tagtype, f.name)
+                f.comment = "{}\nJNIAnalyzer:\nClass: {}\nMethod: {}".format(
+                    f.comment, method.class_name, method.method_name
+                )
 
             except KeyError:
                 continue
@@ -290,6 +293,9 @@ def import_trace_registernatives(bv):
                 log_info("Setting type for: {}".format(f.name))
                 f.function_type = build_binja_type_signature(f.name, method, attr)
                 f.create_user_function_tag(jnianalyzer_tagtype, f.name)
+                f.comment = "{}\nJNIAnalyzer:\nClass: {}\nMethod: {}".format(
+                    f.comment, method.class_name, method.method_name
+                )
 
             # Set symbol for array
             sym = Symbol("DataSymbol", methods_ptr_int, class_name_array)
