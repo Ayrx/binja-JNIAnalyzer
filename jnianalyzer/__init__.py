@@ -1,65 +1,26 @@
 from binaryninja.binaryview import StructuredDataView
-from binaryninja.plugin import PluginCommand
+from binaryninja.plugin import BackgroundTaskThread, PluginCommand
 from binaryninja.interaction import get_open_filename_input
 from binaryninja.log import log_info, log_error
 from binaryninja.types import Type, Symbol
 from binaryninja.typelibrary import TypeLibrary
 from binaryninja.highlevelil import HighLevelILOperation
-from androguard.misc import AnalyzeAPK
-from collections import namedtuple
 import json
 
+from jnianalyzer.apkimporter import APKImporter
+from jnianalyzer.binja_utils import (
+    Method,
+    apply_function_tag,
+    apply_comment,
+    apply_data_tag,
+    build_binja_type_signature,
+)
 from jnianalyzer.jniparser import (
     parse_jni_method_name,
     parse_jni_method_name_full,
     parse_return_type,
     parse_parameter_types,
 )
-
-
-Method = namedtuple(
-    "Method", ["class_name", "method_name", "type_descriptor", "is_static"]
-)
-
-
-def run_analysis(apk):
-    ret = []
-    _, _, analysis = AnalyzeAPK(apk)
-
-    for klass in analysis.get_classes():
-        for method in klass.get_methods():
-            if "native" in method.access:
-                ret.append(
-                    Method(
-                        method.class_name,
-                        method.name,
-                        method.descriptor,
-                        "static" in method.access,
-                    )
-                )
-    return ret
-
-
-def build_binja_type_signature(method_name, method, attr):
-    t = ""
-    t += parse_return_type(method)
-    t += " {}".format(method_name)
-    t += " (JNIEnv* env, "
-
-    if method.is_static:
-        t += "jclass thiz"
-    else:
-        t += "jobject thiz"
-
-    for count, param in enumerate(parse_parameter_types(method)):
-        t += ", {} p{}".format(param, count)
-
-    t += ")"
-
-    if attr:
-        t += " {}".format(attr)
-
-    return t
 
 
 def init_binja(bv):
@@ -72,31 +33,6 @@ def init_binja(bv):
     bv.add_type_library(typelib)
 
     return bv.create_tag_type("JNIAnalyzer", "JNI")
-
-
-def apply_data_tag(bv, address, tagtype, data):
-    tags = bv.get_data_tags_at(address)
-    for tag in tags:
-        if tag.type.name == tagtype.name:
-            break
-    else:
-        bv.create_user_data_tag(address, tagtype, data)
-
-
-def apply_function_tag(func, tagtype, data):
-    tags = func.function_tags
-    for tag in tags:
-        if tag.type.name == tagtype.name:
-            break
-    else:
-        func.create_user_function_tag(tagtype, data)
-
-
-def apply_comment(func, method):
-    if "JNIAnalyzer" not in func.comment:
-        func.comment = "{}\nJNIAnalyzer:\nClass: {}\nMethod: {}".format(
-            func.comment, method.class_name, method.method_name
-        )
 
 
 def set_registernatives(
@@ -177,39 +113,8 @@ def process_findclass_call(bv, ins):
 
 def import_apk(bv):
     jnianalyzer_tagtype = init_binja(bv)
-
-    fname = get_open_filename_input("Select APK")
-    with open(fname, "rb") as f:
-        log_info("Analyzing APK")
-        analysis = run_analysis(f)
-        log_info("Analysis complete")
-        method_map = {}
-
-        for method in analysis:
-            method_map[parse_jni_method_name(method)] = method
-            method_map[parse_jni_method_name_full(method)] = method
-
-        for f in bv.functions:
-            if f.name == "JNI_OnLoad":
-                f.function_type = "jint JNI_OnLoad(JavaVM *vm, void *reserved);"
-                apply_function_tag(f, jnianalyzer_tagtype, f.name)
-                continue
-
-            if f.name == "JNI_OnUnload":
-                f.function_type = "void JNI_OnUnload(JavaVM *vm, void *reserved);"
-                apply_function_tag(f, jnianalyzer_tagtype, f.name)
-                continue
-
-            try:
-                method = method_map[f.name]
-                log_info("Setting type for: {}".format(f.name))
-                attr = str(f.function_type).split(")")[1]
-                f.function_type = build_binja_type_signature(f.name, method, attr)
-                apply_function_tag(f, jnianalyzer_tagtype, f.name)
-                apply_comment(f, method)
-
-            except KeyError:
-                continue
+    i = APKImporter(bv, jnianalyzer_tagtype)
+    i.start()
 
 
 def import_trace_registernatives(bv):
