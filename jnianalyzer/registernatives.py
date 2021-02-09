@@ -105,8 +105,7 @@ class HLILRegisterNativesAnalysis(BackgroundTaskThread):
                 # 215 == RegisterNatives
                 if self.hlil_check_jnienv_call(ins, 215):
                     log_info("Found RegisterNatives call in: {}".format(func.name))
-                    ops = ins.operands
-                    callee_args = ops[1]
+                    callee_args = ins.params
                     class_name = self.process_findclass_call(callee_args[1])
                     methods_ptr = callee_args[2].value.value
                     methods_count = callee_args[3].value.value
@@ -127,13 +126,12 @@ class HLILRegisterNativesAnalysis(BackgroundTaskThread):
         if not ins.operation == HighLevelILOperation.HLIL_CALL:
             return False
 
-        ops = ins.operands
-        callee = ops[0]
+        callee = ins.dest
 
         return (
             callee.operation == HighLevelILOperation.HLIL_DEREF_FIELD
-            and str(callee.operands[0].expr_type) == "struct JNINativeInterface_*"
-            and callee.operands[2] == offset
+            and str(callee.src.expr_type) == "struct JNINativeInterface_*"
+            and callee.member_index == offset
         )
 
     def process_findclass_call(self, ins):
@@ -144,8 +142,7 @@ class HLILRegisterNativesAnalysis(BackgroundTaskThread):
         """
         # 6 == FindClass
         if self.hlil_check_jnienv_call(ins, 6):
-            ops = ins.operands
-            callee_args = ops[1]
+            callee_args = ins.params
 
             if callee_args[1].operation == HighLevelILOperation.HLIL_CONST_PTR:
                 return self.bv.get_ascii_string_at(callee_args[1].value.value, 1)
