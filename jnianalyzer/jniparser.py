@@ -77,6 +77,9 @@ def parse_parameter_types(method):
                     param += cur
                     ret.append(parse_type_signature(param))
 
+                # An array is always followed up with a space. Skip that.
+                cur = next(sig)
+
             # Handle primitive types
             else:
                 ret.append(parse_type_signature(cur))
