@@ -55,19 +55,19 @@ def locate_registernatives(bv):
 
 
 PluginCommand.register(
-    "JNIAnalyzer: Import APK",
+    "JNIAnalyzer\Import APK",
     "Analyze APK for native method signatures.",
     import_apk,
 )
 
 PluginCommand.register(
-    "JNIAnalyzer: Import trace_registernatives JSON",
+    "JNIAnalyzer\Import trace_registernatives JSON",
     "Import results from trace_registernatives output.",
     import_trace_registernatives,
 )
 
 PluginCommand.register(
-    "JNIAnalyzer: Locate RegisterNatives calls",
+    "JNIAnalyzer\Locate RegisterNatives calls",
     "Find RegisterNatives calls through HLIL analysis.",
     locate_registernatives,
 )
