@@ -17,6 +17,8 @@ from jnianalyzer.jniparser import (
     parse_parameter_types,
 )
 
+from pathlib import Path
+
 
 class APKImporter(BackgroundTaskThread):
     def __init__(self, bv, jnianalyzer_tagtype):
@@ -26,6 +28,7 @@ class APKImporter(BackgroundTaskThread):
 
     def run(self):
         fname = get_open_filename_input("Select APK")
+        fname_root = Path(fname.decode()).name
         with open(fname, "rb") as f:
             log_info("Analyzing APK")
             analysis = self.run_analysis(f)
@@ -52,7 +55,11 @@ class APKImporter(BackgroundTaskThread):
                     log_info("Setting type for: {}".format(f.name))
                     attr = str(f.function_type).split(")")[1]
                     f.function_type = build_binja_type_signature(f.name, method, attr)
-                    apply_function_tag(f, self.jnianalyzer_tagtype, f.name)
+                    apply_function_tag(
+                        f,
+                        self.jnianalyzer_tagtype,
+                        "Imported from: {}".format(fname_root),
+                    )
                     apply_comment(f, method)
 
                 except KeyError:

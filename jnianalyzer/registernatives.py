@@ -22,9 +22,11 @@ from jnianalyzer.jniparser import (
     parse_parameter_types,
 )
 
+from pathlib import Path
+
 
 def set_registernatives(
-    bv, jnianalyzer_tagtype, class_name, methods_ptr, methods_count
+    bv, jnianalyzer_tagtype, class_name, methods_ptr, methods_count, tag_msg
 ):
     class_name_array = "{}_METHODS_ARRAY".format(class_name)
 
@@ -54,7 +56,7 @@ def set_registernatives(
         attr = str(f.function_type).split(")")[1]
         log_info("Setting type for: {}".format(f.name))
         f.function_type = build_binja_type_signature(f.name, method, attr)
-        apply_function_tag(f, jnianalyzer_tagtype, f.name)
+        apply_function_tag(f, jnianalyzer_tagtype, tag_msg)
         apply_comment(f, method)
 
     # Set symbol for array
@@ -62,7 +64,9 @@ def set_registernatives(
     bv.define_user_symbol(sym)
 
     # Set tag
-    apply_data_tag(bv, methods_ptr, jnianalyzer_tagtype, class_name_array)
+    apply_data_tag(
+        bv, methods_ptr, jnianalyzer_tagtype, "{}; {}".format(class_name_array, tag_msg)
+    )
 
 
 class TraceRegisterNativesImporter(BackgroundTaskThread):
@@ -73,6 +77,7 @@ class TraceRegisterNativesImporter(BackgroundTaskThread):
 
     def run(self):
         fname = get_open_filename_input("Select JSON")
+        fname_root = Path(fname.decode()).name
         with open(fname, "rb") as f:
             data = json.load(f)
 
@@ -88,6 +93,7 @@ class TraceRegisterNativesImporter(BackgroundTaskThread):
                     class_name,
                     int(methods_ptr, 16),
                     methods_count,
+                    "Imported from: {}".format(fname_root),
                 )
 
 
