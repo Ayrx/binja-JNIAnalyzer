@@ -2,7 +2,8 @@ from binaryninja.plugin import BackgroundTaskThread, PluginCommand
 from binaryninja.interaction import get_open_filename_input
 from binaryninja.log import log_info, log_error
 from binaryninja.typelibrary import TypeLibrary
-from binaryninja.highlevelil import HighLevelILOperation
+from binaryninja.enums import MediumLevelILOperation
+from binaryninja.types import FunctionParameter, Type
 
 import json
 
@@ -57,39 +58,65 @@ def locate_registernatives(bv):
 
 
 def test(bv):
-    func = bv.get_function_at(0x475f08)
+    func = bv.get_function_at(0x460384)
 
     # Save a mapping of identifiers for each parameter
     params = {}
     for p in func.parameter_vars:
-        if p.type == "JavaVM*":
+        if str(p.type) == "JavaVM*":
             params[p.identifier] = p
 
     q = []
-
-    hlil = func.hlil
-    for ins in hlil.instructions:
-        if ins.operation == HighLevelILOperation.HLIL_CALL:
-            # Skip processing if the HLIL_CALL is to a runtime function
-            if not ins.dest.operation == HighLevelILOperation.HLIL_CONST_PTR:
+    for ins in func.mlil.instructions:
+        if ins.operation == MediumLevelILOperation.MLIL_CALL:
+            # Skip processing if the MLIL_CALL is to a runtime function
+            if not ins.dest.operation == MediumLevelILOperation.MLIL_CONST_PTR:
                 continue
+
+            """
+            TODO: Do something with current_mlil.get_var_definitions to trace
+            back a MLIL_VAR to its source.
+            """
 
             target_func = bv.get_function_at(ins.dest.value.value)
 
             for index, p in enumerate(ins.params):
-                try:
-                    param = params[p.var.identifier]
-                    q.append((target_func, index, param.type))
-                except KeyError:
-                    continue
+                # TODO: Do we need to handle other MLIL types for the params?
+                if p.operation == MediumLevelILOperation.MLIL_VAR:
+                    try:
+                        param = params[p.src.identifier]
+                        q.append((target_func, index, param.type))
+                    except KeyError:
+                        continue
+
+    process_javavm_queue(q)
 
 
 def process_javavm_queue(q):
-    for target_func, index, param in q:
+    log_info(str(q))
+    for target_func, index, param_type in q:
         # If the target function only has one caller, it is safe to apply the
         # type information as there can be no conflicts.
         if len(target_func.callers) == 1:
-            pass
+            log_info("Setting type information for: {}".format(target_func.name))
+
+            old = target_func.function_type
+            new_params = []
+            for var, params in zip(target_func.parameter_vars, old.parameters):
+                new_params.append([var.type, params.name, params.location])
+
+            p = new_params[index]
+            p[0] = param_type
+            p[1] = "vm"
+
+            params = [FunctionParameter(p[0], p[1], p[2]) for p in new_params]
+            target_func.function_type = Type.function(
+                old.return_value,
+                params,
+                old.calling_convention,
+                old.has_variable_arguments,
+                old.stack_adjustment,
+            )
 
 
 PluginCommand.register(
