@@ -1,3 +1,6 @@
+from binaryninja.log import log_debug
+
+
 class UnknownILOpException(Exception):
     def __init__(self, message):
         super().__init__(message)
@@ -9,11 +12,15 @@ class ILOpUnimplementedException(Exception):
 
 
 class MLILVisitor(object):
+    def __init__(self, raise_unimplemented=True):
+        self.raise_unimplemented = raise_unimplemented
 
     def visit(self, ins):
         if hasattr(self, ins.operation.name):
-            value = getattr(self, ins.operation.name)(ins)
-            return value
+            try:
+                return getattr(self, ins.operation.name)(ins)
+            except ILOpUnimplementedException as e:
+                log_debug(str(e))
         else:
             raise UnknownILOpException("{} is an unknown operation")
 

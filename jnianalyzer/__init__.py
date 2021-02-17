@@ -25,6 +25,7 @@ from jnianalyzer.jniparser import (
     parse_return_type,
     parse_parameter_types,
 )
+from jnianalyzer.visitor import MLILVisitor
 
 
 def init_binja(bv):
@@ -57,6 +58,35 @@ def locate_registernatives(bv):
     i.start()
 
 
+class CallVisitor(MLILVisitor):
+
+    def __init__(self, bv, params):
+        super().__init__(raise_unimplemented=False)
+
+        self.bv = bv
+        self.params = params
+        self.callsites = []
+
+    def MLIL_CALL(self, ins):
+        if ins.dest.operation != MediumLevelILOperation.MLIL_CONST_PTR:
+            return None
+
+        target_func = self.bv.get_function_at(ins.dest.value.value)
+        for index, p in enumerate(ins.params):
+            t = self.visit(p)
+            if t:
+                self.callsites.append((target_func, index, t))
+
+    def MLIL_VAR(self, ins):
+        try:
+            return self.params[ins.src.identifier].type
+        except KeyError:
+            return None
+
+    def MLIL_CONST(self, ins):
+        pass
+
+
 def test(bv):
     func = bv.get_function_at(0x460384)
 
@@ -66,30 +96,11 @@ def test(bv):
         if str(p.type) == "JavaVM*":
             params[p.identifier] = p
 
-    q = []
+    visitor = CallVisitor(bv, params)
     for ins in func.mlil.instructions:
-        if ins.operation == MediumLevelILOperation.MLIL_CALL:
-            # Skip processing if the MLIL_CALL is to a runtime function
-            if not ins.dest.operation == MediumLevelILOperation.MLIL_CONST_PTR:
-                continue
+        visitor.visit(ins)
 
-            """
-            TODO: Do something with current_mlil.get_var_definitions to trace
-            back a MLIL_VAR to its source.
-            """
-
-            target_func = bv.get_function_at(ins.dest.value.value)
-
-            for index, p in enumerate(ins.params):
-                # TODO: Do we need to handle other MLIL types for the params?
-                if p.operation == MediumLevelILOperation.MLIL_VAR:
-                    try:
-                        param = params[p.src.identifier]
-                        q.append((target_func, index, param.type))
-                    except KeyError:
-                        continue
-
-    process_javavm_queue(q)
+    process_javavm_queue(visitor.callsites)
 
 
 def process_javavm_queue(q):
