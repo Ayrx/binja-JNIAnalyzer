@@ -60,10 +60,11 @@ def locate_registernatives(bv):
 
 class CallVisitor(MLILVisitor):
 
-    def __init__(self, bv, params):
+    def __init__(self, bv, mlil params):
         super().__init__(raise_unimplemented=False)
 
         self.bv = bv
+        self.mlil = mlil
         self.params = params
         self.callsites = []
 
@@ -96,7 +97,7 @@ def test(bv):
         if str(p.type) == "JavaVM*":
             params[p.identifier] = p
 
-    visitor = CallVisitor(bv, params)
+    visitor = CallVisitor(bv, func.mlil, params)
     for ins in func.mlil.instructions:
         visitor.visit(ins)
 
