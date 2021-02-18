@@ -333,7 +333,6 @@ class MLILVisitor(object):
     def MLIL_BOOL_TO_INT(self, ins):
         raise ILOpUnimplementedException("MLIL_BOOL_TO_INT")
 
-
     def MLIL_CALL_OUTPUT_SSA(self, ins):
         raise ILOpUnimplementedException("MLIL_CALL_OUTPUT_SSA")
 

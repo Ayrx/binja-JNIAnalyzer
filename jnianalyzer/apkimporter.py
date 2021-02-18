@@ -16,6 +16,7 @@ from jnianalyzer.jniparser import (
     parse_return_type,
     parse_parameter_types,
 )
+from jnianalyzer.type_propagation import propagate_type
 
 from pathlib import Path
 
@@ -43,27 +44,26 @@ class APKImporter(BackgroundTaskThread):
                 if f.name == "JNI_OnLoad":
                     f.function_type = "jint JNI_OnLoad(JavaVM *vm, void *reserved);"
                     apply_function_tag(f, self.jnianalyzer_tagtype, f.name)
-                    continue
-
-                if f.name == "JNI_OnUnload":
+                elif f.name == "JNI_OnUnload":
                     f.function_type = "void JNI_OnUnload(JavaVM *vm, void *reserved);"
                     apply_function_tag(f, self.jnianalyzer_tagtype, f.name)
-                    continue
+                else:
+                    try:
+                        method = method_map[f.name]
+                        log_info("Setting type for: {}".format(f.name))
+                        attr = str(f.function_type).split(")")[1]
+                        f.function_type = build_binja_type_signature(f.name, method, attr)
+                        apply_function_tag(
+                            f,
+                            self.jnianalyzer_tagtype,
+                            "Imported from: {}".format(fname_root),
+                        )
+                        apply_comment(f, method)
 
-                try:
-                    method = method_map[f.name]
-                    log_info("Setting type for: {}".format(f.name))
-                    attr = str(f.function_type).split(")")[1]
-                    f.function_type = build_binja_type_signature(f.name, method, attr)
-                    apply_function_tag(
-                        f,
-                        self.jnianalyzer_tagtype,
-                        "Imported from: {}".format(fname_root),
-                    )
-                    apply_comment(f, method)
+                    except KeyError:
+                        continue
 
-                except KeyError:
-                    continue
+                propagate_type(self.bv, f)
 
     def run_analysis(self, apk):
         ret = []
