@@ -329,3 +329,91 @@ class MLILVisitor(object):
 
     def MLIL_UNIMPL_MEM(self, ins):
         raise ILOpUnimplementedException("MLIL_UNIMPL_MEM")
+
+    def MLIL_BOOL_TO_INT(self, ins):
+        raise ILOpUnimplementedException("MLIL_BOOL_TO_INT")
+
+
+    def MLIL_CALL_OUTPUT_SSA(self, ins):
+        raise ILOpUnimplementedException("MLIL_CALL_OUTPUT_SSA")
+
+    def MLIL_CALL_PARAM_SSA(self, ins):
+        raise ILOpUnimplementedException("MLIL_CALL_PARAM_SSA")
+
+    def MLIL_CALL_SSA(self, ins):
+        raise ILOpUnimplementedException("MLIL_CALL_SSA")
+
+    def MLIL_CALL_UNTYPED_SSA(self, ins):
+        raise ILOpUnimplementedException("MLIL_CALL_UNTYPED_SSA")
+
+    def MLIL_FREE_VAR_SLOT_SSA(self, ins):
+        raise ILOpUnimplementedException("MLIL_FREE_VAR_SLOT_SSA")
+
+    def MLIL_INTRINSIC_SSA(self, ins):
+        raise ILOpUnimplementedException("MLIL_INTRINSIC_SSA")
+
+    def MLIL_LOAD_SSA(self, ins):
+        raise ILOpUnimplementedException("MLIL_LOAD_SSA")
+
+    def MLIL_LOAD_STRUCT_SSA(self, ins):
+        raise ILOpUnimplementedException("MLIL_LOAD_STRUCT_SSA")
+
+    def MLIL_MEM_PHI(self, ins):
+        raise ILOpUnimplementedException("MLIL_MEM_PHI")
+
+    def MLIL_NOP(self, ins):
+        raise ILOpUnimplementedException("MLIL_NOP")
+
+    def MLIL_SET_VAR_ALIASED(self, ins):
+        raise ILOpUnimplementedException("MLIL_SET_VAR_ALIASED")
+
+    def MLIL_SET_VAR_ALIASED_FIELD(self, ins):
+        raise ILOpUnimplementedException("MLIL_SET_VAR_ALIASED_FIELD")
+
+    def MLIL_SET_VAR_SPLIT_SSA(self, ins):
+        raise ILOpUnimplementedException("MLIL_SET_VAR_SPLIT_SSA")
+
+    def MLIL_SET_VAR_SSA(self, ins):
+        raise ILOpUnimplementedException("MLIL_SET_VAR_SSA")
+
+    def MLIL_SET_VAR_SSA_FIELD(self, ins):
+        raise ILOpUnimplementedException("MLIL_SET_VAR_SSA_FIELD")
+
+    def MLIL_STORE_SSA(self, ins):
+        raise ILOpUnimplementedException("MLIL_STORE_SSA")
+
+    def MLIL_STORE_STRUCT_SSA(self, ins):
+        raise ILOpUnimplementedException("MLIL_STORE_STRUCT_SSA")
+
+    def MLIL_SYSCALL_SSA(self, ins):
+        raise ILOpUnimplementedException("MLIL_SYSCALL_SSA")
+
+    def MLIL_SYSCALL_UNTYPED_SSA(self, ins):
+        raise ILOpUnimplementedException("MLIL_SYSCALL_UNTYPED_SSA")
+
+    def MLIL_TAILCALL_SSA(self, ins):
+        raise ILOpUnimplementedException("MLIL_TAILCALL_SSA")
+
+    def MLIL_TAILCALL_UNTYPED(self, ins):
+        raise ILOpUnimplementedException("MLIL_TAILCALL_UNTYPED")
+
+    def MLIL_TAILCALL_UNTYPED_SSA(self, ins):
+        raise ILOpUnimplementedException("MLIL_TAILCALL_UNTYPED_SSA")
+
+    def MLIL_VAR_ALIASED(self, ins):
+        raise ILOpUnimplementedException("MLIL_VAR_ALIASED")
+
+    def MLIL_VAR_ALIASED_FIELD(self, ins):
+        raise ILOpUnimplementedException("MLIL_VAR_ALIASED_FIELD")
+
+    def MLIL_VAR_PHI(self, ins):
+        raise ILOpUnimplementedException("MLIL_VAR_PHI")
+
+    def MLIL_VAR_SPLIT_SSA(self, ins):
+        raise ILOpUnimplementedException("MLIL_VAR_SPLIT_SSA")
+
+    def MLIL_VAR_SSA(self, ins):
+        raise ILOpUnimplementedException("MLIL_VAR_SSA")
+
+    def MLIL_VAR_SSA_FIELD(self, ins):
+        raise ILOpUnimplementedException("MLIL_VAR_SSA_FIELD")
