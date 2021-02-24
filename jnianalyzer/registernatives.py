@@ -1,5 +1,6 @@
 from binaryninja.plugin import BackgroundTaskThread
 from binaryninja.highlevelil import HighLevelILOperation
+from binaryninja.enums import MediumLevelILOperation
 from binaryninja.binaryview import StructuredDataView
 from binaryninja.interaction import get_open_filename_input
 from binaryninja.types import Type, Symbol
@@ -21,6 +22,7 @@ from jnianalyzer.jniparser import (
     parse_return_type,
     parse_parameter_types,
 )
+from jnianalyzer.visitor import MLILVisitor
 
 from pathlib import Path
 
@@ -156,3 +158,101 @@ class HLILRegisterNativesAnalysis(BackgroundTaskThread):
                 print(callee_args[1])
 
         return None
+
+
+class JNIEnvCallVisitor(MLILVisitor):
+    def __init__(self, mlil, offset):
+        super().__init__(raise_unimplemented=True)
+        self.mlil = mlil
+        self.offset = offset
+
+    def MLIL_VAR_SSA(self, ins):
+        return self.visit(self.mlil.get_ssa_var_definition(ins.src))
+
+    def MLIL_SET_VAR_SSA(self, ins):
+        return self.visit(ins.src)
+
+    def MLIL_LOAD_STRUCT_SSA(self, ins):
+        if (
+            str(ins.src.expr_type) == "struct JNINativeInterface_*"
+            and ins.offset == self.offset * 4
+        ):
+            return True
+
+        return False
+
+
+class ClassNameVisitor(MLILVisitor):
+    def __init__(self, mlil):
+        super().__init__(raise_unimplemented=True)
+        self.mlil = mlil
+
+    def MLIL_VAR_SSA(self, ins):
+        return self.visit(self.mlil.get_ssa_var_definition(ins.src))
+
+    def MLIL_SET_VAR_SSA(self, ins):
+        return self.visit(ins.src)
+
+    def MLIL_CALL_SSA(self, ins):
+        f = FindClassVisitor(self.mlil)
+        if f.visit(ins.dest):
+            return ins.params[1].value.value
+
+
+class FindClassVisitor(JNIEnvCallVisitor):
+    def __init__(self, mlil):
+        super().__init__(mlil, 6)
+
+    def MLIL_CALL_SSA(self, ins):
+        return self.visit(ins.dest)
+
+
+class RegisterNativesVisitor(JNIEnvCallVisitor):
+    def __init__(self, bv, mlil):
+        self.bv = bv
+        super().__init__(mlil, 215)
+        self.registernatives_calls = []
+
+    def MLIL_CALL_SSA(self, ins):
+        if ins.dest.operation == MediumLevelILOperation.MLIL_CONST_PTR:
+            return None
+
+        if self.visit(ins.dest):
+            log_info("Located RegisterNatives call: {}".format(ins))
+            v = ClassNameVisitor(self.mlil)
+            class_name = self.bv.get_ascii_string_at(v.visit(ins.params[1]), 1)
+            methods_ptr = ins.params[2].value.value
+            methods_count = ins.params[3].value.value
+            self.registernatives_calls.append((class_name, methods_ptr, methods_count))
+
+
+class RegisterNativesAnalysis(BackgroundTaskThread):
+    def __init__(self, bv, func, jnianalyzer_tagtype):
+        BackgroundTaskThread.__init__(self, "Locating RegisterNatives calls...", True)
+        self.bv = bv
+        self.func = func
+        self.jnianalyzer_tagtype = jnianalyzer_tagtype
+
+    def run(self):
+        mlil = self.func.mlil.ssa_form
+        visitor = RegisterNativesVisitor(self.bv, mlil)
+
+        for ins in mlil.instructions:
+            if ins.operation == MediumLevelILOperation.MLIL_CALL_SSA:
+                visitor.visit(ins)
+
+        log_info(
+            "Setting type and naming information for {} calls".format(
+                len(visitor.registernatives_calls)
+            )
+        )
+
+        for i in visitor.registernatives_calls:
+            set_registernatives(
+                self.bv,
+                self.jnianalyzer_tagtype,
+                i[0],
+                i[1],
+                i[2],
+                "Set in: {}".format(self.func.name),
+            )

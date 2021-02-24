@@ -8,6 +8,7 @@ from jnianalyzer.apkimporter import APKImporter
 from jnianalyzer.registernatives import (
     TraceRegisterNativesImporter,
     HLILRegisterNativesAnalysis,
+    RegisterNativesAnalysis,
 )
 from jnianalyzer.binja_utils import (
     Method,
@@ -54,6 +55,12 @@ def locate_registernatives(bv):
     i.start()
 
 
+def registernatives_analysis(bv, func):
+    jnianalyzer_tagtype = init_binja(bv)
+    i = RegisterNativesAnalysis(bv, func, jnianalyzer_tagtype)
+    i.start()
+
+
 PluginCommand.register(
     "JNIAnalyzer\Import APK",
     "Analyze APK for native method signatures.",
@@ -70,4 +77,10 @@ PluginCommand.register(
     "JNIAnalyzer\Locate RegisterNatives calls",
     "Find RegisterNatives calls through HLIL analysis.",
     locate_registernatives,
+)
+
+PluginCommand.register_for_function(
+    "JNIAnalyzer\Analyze RegisterNatives calls in current function",
+    "Propagate type information from RegisterNatives calls within the current function.",
+    registernatives_analysis,
 )
