@@ -21,13 +21,18 @@ the correct things if you are on Linux.
 
 ### Import APK
 
-Run the "JNIAnalyzer: Import APK" command and select the APK file associated
+Run the "JNIAnalyzer - Import APK" command and select the APK file associated
 with the native library being analyzed.
 
 ### Import trace_registernatives
 
-Run the "JNIAnalyzer: Import trace_registernatives JSON" command and select
+Run the "JNIAnalyzer - Import trace_registernatives JSON" command and select
 the JSON output from [trace_registernatives][trace_registernatives].
+
+### Analyze current function
+
+Run the "JNIAnalyzer - Analyze RegisterNatives calls in current function"
+command while in a function that calls `RegisterNatives`.
 
 ### Binary Ninja Tags
 
