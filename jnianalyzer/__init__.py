@@ -1,27 +1,11 @@
-from binaryninja.plugin import BackgroundTaskThread, PluginCommand
-from binaryninja.interaction import get_open_filename_input
+from binaryninja.plugin import PluginCommand
 from binaryninja.log import log_info, log_error
 from binaryninja.typelibrary import TypeLibrary
-import json
 
 from jnianalyzer.apkimporter import APKImporter
 from jnianalyzer.registernatives import (
     TraceRegisterNativesImporter,
-    HLILRegisterNativesAnalysis,
     RegisterNativesAnalysis,
-)
-from jnianalyzer.binja_utils import (
-    Method,
-    apply_function_tag,
-    apply_comment,
-    apply_data_tag,
-    build_binja_type_signature,
-)
-from jnianalyzer.jniparser import (
-    parse_jni_method_name,
-    parse_jni_method_name_full,
-    parse_return_type,
-    parse_parameter_types,
 )
 
 

@@ -13,8 +13,6 @@ from jnianalyzer.binja_utils import (
 from jnianalyzer.jniparser import (
     parse_jni_method_name,
     parse_jni_method_name_full,
-    parse_return_type,
-    parse_parameter_types,
 )
 
 from pathlib import Path
