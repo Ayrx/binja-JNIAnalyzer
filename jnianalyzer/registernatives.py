@@ -1,5 +1,4 @@
 from binaryninja.plugin import BackgroundTaskThread
-from binaryninja.highlevelil import HighLevelILOperation
 from binaryninja.enums import MediumLevelILOperation
 from binaryninja.binaryview import StructuredDataView
 from binaryninja.interaction import get_open_filename_input
@@ -97,67 +96,6 @@ class TraceRegisterNativesImporter(BackgroundTaskThread):
                     methods_count,
                     "Imported from: {}".format(fname_root),
                 )
-
-
-class HLILRegisterNativesAnalysis(BackgroundTaskThread):
-    def __init__(self, bv, jnianalyzer_tagtype):
-        BackgroundTaskThread.__init__(self, "Running HLIL analysis...", True)
-        self.bv = bv
-        self.jnianalyzer_tagtype = jnianalyzer_tagtype
-
-    def run(self):
-        for func in self.bv.functions:
-            hlil = func.hlil
-
-            for ins in hlil.instructions:
-                # 215 == RegisterNatives
-                if self.hlil_check_jnienv_call(ins, 215):
-                    log_info("Found RegisterNatives call in: {}".format(func.name))
-                    callee_args = ins.params
-                    class_name = self.process_findclass_call(callee_args[1])
-                    methods_ptr = callee_args[2].value.value
-                    methods_count = callee_args[3].value.value
-
-                    log_info(
-                        "Setting JNINativeMethod type at {}".format(hex(methods_ptr))
-                    )
-                    set_registernatives(
-                        self.bv,
-                        self.jnianalyzer_tagtype,
-                        class_name,
-                        methods_ptr,
-                        methods_count,
-                    )
-
-    def hlil_check_jnienv_call(self, ins, offset):
-        """Returns True if a HLIL instruction is a call to a JNIEnv* function."""
-        if not ins.operation == HighLevelILOperation.HLIL_CALL:
-            return False
-
-        callee = ins.dest
-
-        return (
-            callee.operation == HighLevelILOperation.HLIL_DEREF_FIELD
-            and str(callee.src.expr_type) == "struct JNINativeInterface_*"
-            and callee.member_index == offset
-        )
-
-    def process_findclass_call(self, ins):
-        """Process a FindClass JNI function call and returns the class name.
-
-        This method only works if the class name is a constant within the binary
-        and not determined during runtime.
-        """
-        # 6 == FindClass
-        if self.hlil_check_jnienv_call(ins, 6):
-            callee_args = ins.params
-
-            if callee_args[1].operation == HighLevelILOperation.HLIL_CONST_PTR:
-                return self.bv.get_ascii_string_at(callee_args[1].value.value, 1)
-            else:
-                print(callee_args[1])
-
-        return None
 
 
 class JNIEnvCallVisitor(MLILVisitor):

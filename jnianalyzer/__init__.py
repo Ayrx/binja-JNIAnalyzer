@@ -49,12 +49,6 @@ def import_trace_registernatives(bv):
     i.start()
 
 
-def locate_registernatives(bv):
-    jnianalyzer_tagtype = init_binja(bv)
-    i = HLILRegisterNativesAnalysis(bv, jnianalyzer_tagtype)
-    i.start()
-
-
 def registernatives_analysis(bv, func):
     jnianalyzer_tagtype = init_binja(bv)
     i = RegisterNativesAnalysis(bv, func, jnianalyzer_tagtype)
@@ -71,12 +65,6 @@ PluginCommand.register(
     "JNIAnalyzer\Import trace_registernatives JSON",
     "Import results from trace_registernatives output.",
     import_trace_registernatives,
-)
-
-PluginCommand.register(
-    "JNIAnalyzer\Locate RegisterNatives calls",
-    "Find RegisterNatives calls through HLIL analysis.",
-    locate_registernatives,
 )
 
 PluginCommand.register_for_function(
