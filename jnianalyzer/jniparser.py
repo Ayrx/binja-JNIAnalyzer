@@ -66,8 +66,11 @@ def parse_parameter_types(method):
             if cur == "L":
                 ret.append(parse_type_signature(parse_class(sig)))
 
+                # A class is always followed up with a space. Skip that.
+                cur = next(sig)
+
             # Handle arrays
-            if cur == "[":
+            elif cur == "[":
                 param = "["
                 cur = next(sig)
                 if cur == "L":
