@@ -1,0 +1,16 @@
+[tool.poetry]
+name = "binja-jnianalyzer"
+version = "0.2.0"
+description = "Analysis scripts for Binary Ninja to work with Android NDK libraries."
+authors = ["Terry Chia <terrycwk1994@gmail.com>"]
+
+[tool.poetry.dependencies]
+python = "^3.9"
+
+[tool.poetry.dev-dependencies]
+black = "^20.8b1"
+pytest = "^6.2.2"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
