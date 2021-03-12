@@ -5,20 +5,64 @@ TYPE_REGEX = re.compile(r"\((|.+?)\)(.+)")
 
 def parse_jni_method_name(method):
     ret = "Java_"
-    ret += mangle(str(method.class_name)[1:-1]).replace("/", "_")
+    ret += _mangle(str(method.class_name)[1:-1]).replace("/", "_")
     ret += "_"
-    ret += mangle(str(method.method_name))
+    ret += _mangle(str(method.method_name))
     return ret
 
 
 def parse_jni_method_name_full(method):
     ret = parse_jni_method_name(method)
     ret += "__"
-    ret += mangle(parse_parameter_signature(method)).replace("/", "_")
+    ret += _mangle(_parse_parameter_signature(method)).replace("/", "_")
     return ret
 
 
-def mangle(string):
+def parse_return_type(method):
+    sig = TYPE_REGEX.match(str(method.type_descriptor)).group(2)
+    return _parse_type_signature(sig)
+
+
+def parse_parameter_types(method):
+    sig = _parse_parameter_signature(method)
+    sig = iter(sig)
+
+    ret = []
+    while True:
+        try:
+            cur = next(sig)
+
+            # Handle class
+            if cur == "L":
+                ret.append(_parse_type_signature(_parse_class(sig)))
+
+                # A class is always followed up with a space. Skip that.
+                cur = next(sig)
+
+            # Handle arrays
+            elif cur == "[":
+                param = "["
+                cur = next(sig)
+                if cur == "L":
+                    param += _parse_class(sig)
+                    ret.append(_parse_type_signature(param))
+                else:
+                    param += cur
+                    ret.append(_parse_type_signature(param))
+
+                # An array is always followed up with a space. Skip that.
+                cur = next(sig)
+
+            # Handle primitive types
+            else:
+                ret.append(_parse_type_signature(cur))
+        except StopIteration:
+            break
+
+    return ret
+
+
+def _mangle(string):
     ret = ""
     for c in string:
         if c == "_":
@@ -44,55 +88,11 @@ def mangle(string):
     return ret
 
 
-def parse_return_type(method):
-    sig = TYPE_REGEX.match(str(method.type_descriptor)).group(2)
-    return parse_type_signature(sig)
-
-
-def parse_parameter_signature(method):
+def _parse_parameter_signature(method):
     return TYPE_REGEX.match(str(method.type_descriptor)).group(1)
 
 
-def parse_parameter_types(method):
-    sig = parse_parameter_signature(method)
-    sig = iter(sig)
-
-    ret = []
-    while True:
-        try:
-            cur = next(sig)
-
-            # Handle class
-            if cur == "L":
-                ret.append(parse_type_signature(parse_class(sig)))
-
-                # A class is always followed up with a space. Skip that.
-                cur = next(sig)
-
-            # Handle arrays
-            elif cur == "[":
-                param = "["
-                cur = next(sig)
-                if cur == "L":
-                    param += parse_class(sig)
-                    ret.append(parse_type_signature(param))
-                else:
-                    param += cur
-                    ret.append(parse_type_signature(param))
-
-                # An array is always followed up with a space. Skip that.
-                cur = next(sig)
-
-            # Handle primitive types
-            else:
-                ret.append(parse_type_signature(cur))
-        except StopIteration:
-            break
-
-    return ret
-
-
-def parse_class(sig_iter):
+def _parse_class(sig_iter):
     param = "L"
     while True:
         cur = next(sig_iter)
@@ -101,7 +101,7 @@ def parse_class(sig_iter):
             return param
 
 
-def parse_type_signature(sig):
+def _parse_type_signature(sig):
     if sig == "Z":
         return "jboolean"
     elif sig == "B":
