@@ -26,7 +26,7 @@ class APKImporter(BackgroundTaskThread):
 
     def run(self):
         fname = get_open_filename_input("Select APK")
-        fname_root = Path(fname.decode()).name
+        fname_root = Path(fname).name
         with open(fname, "rb") as f:
             log_info("Analyzing APK")
             analysis = self.run_analysis(f)

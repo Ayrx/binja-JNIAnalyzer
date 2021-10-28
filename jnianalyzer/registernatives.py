@@ -71,7 +71,7 @@ class TraceRegisterNativesImporter(BackgroundTaskThread):
 
     def run(self):
         fname = get_open_filename_input("Select JSON")
-        fname_root = Path(fname.decode()).name
+        fname_root = Path(fname).name
         with open(fname, "rb") as f:
             data = json.load(f)
 
