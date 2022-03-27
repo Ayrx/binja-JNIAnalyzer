@@ -1,8 +1,8 @@
 [tool.poetry]
 name = "binja-jnianalyzer"
-version = "0.2.0"
+version = "0.3.0"
 description = "Analysis scripts for Binary Ninja to work with Android NDK libraries."
-authors = ["Terry Chia <terrycwk1994@gmail.com>"]
+authors = ["Terry Chia <terry@ayrx.me>"]
 
 [tool.poetry.dependencies]
 python = "^3.9"

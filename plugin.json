@@ -14,7 +14,7 @@
         "Darwin": "Follow the [installation instructions](https://github.com/Ayrx/binja-JNIAnalyzer#installation) to setup the required dependencies.",
         "Linux": "Follow the [installation instructions](https://github.com/Ayrx/binja-JNIAnalyzer#installation) to setup the required dependencies."
     },
-	"version": "0.2.1",
+	"version": "0.3.0",
 	"author": "Terry Chia (Ayrx)",
-	"minimumbinaryninjaversion": 2000
+	"minimumbinaryninjaversion": 3000
 }
